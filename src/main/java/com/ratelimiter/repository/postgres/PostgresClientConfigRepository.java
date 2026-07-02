@@ -1,8 +1,11 @@
 package com.ratelimiter.repository.postgres;
 
+import com.ratelimiter.exception.ConfigurationException;
 import com.ratelimiter.model.ClientConfig;
 import com.ratelimiter.model.enums.AlgorithmType;
 import com.ratelimiter.repository.ClientConfigRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -16,6 +19,8 @@ import java.util.Optional;
 public class PostgresClientConfigRepository implements ClientConfigRepository {
 
     private final DataSource dataSource;
+    private static final Logger logger =
+            LoggerFactory.getLogger(PostgresClientConfigRepository.class);
 
     public PostgresClientConfigRepository(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -30,6 +35,11 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                 WHERE client_id = ?
                 """;
 
+        logger.debug(
+                "Fetching configuration for client '{}'.",
+                clientId
+        );
+
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -38,6 +48,10 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
             ResultSet rs = statement.executeQuery();
 
             if (!rs.next()) {
+                logger.debug(
+                        "No configuration found for client '{}'.",
+                        clientId
+                );
                 return Optional.empty();
             }
 
@@ -50,10 +64,20 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                     rs.getBoolean("enabled")
             );
 
+            logger.debug(
+                    "Configuration loaded successfully for client '{}'.",
+                    clientId
+            );
+
             return Optional.of(config);
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to fetch client configuration.", e);
+            logger.error(
+                    "Failed to fetch configuration for client '{}'.",
+                    clientId,
+                    e
+            );
+            throw new ConfigurationException("Failed to fetch client configuration.", e);
         }
     }
 
@@ -65,6 +89,10 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                 (client_id, algorithm, capacity, refill_rate, window_size_seconds, enabled)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """;
+        logger.info(
+                "Saving configuration for client '{}'.",
+                clientConfig.clientId()
+        );
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -78,8 +106,18 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
 
             statement.executeUpdate();
 
+            logger.info(
+                    "Configuration saved successfully for client '{}'.",
+                    clientConfig.clientId()
+            );
+
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to save client configuration.", e);
+            logger.error(
+                    "Failed to save configuration for client '{}'.",
+                    clientConfig.clientId(),
+                    e
+            );
+            throw new ConfigurationException("Failed to fetch client configuration.", e);
         }
     }
 
@@ -95,6 +133,10 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                     enabled = ?
                 WHERE client_id = ?
                 """;
+        logger.info(
+                "Updating configuration for client '{}'.",
+                clientConfig.clientId()
+        );
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -107,9 +149,17 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
             statement.setString(6, clientConfig.clientId());
 
             statement.executeUpdate();
+            logger.info(
+                    "Configuration updated successfully for client '{}'.",
+                    clientConfig.clientId()
+            );
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to update client configuration.", e);
+            logger.error(
+                    "Failed to update configuration for client '{}'.",
+                    clientConfig.clientId());
+
+            throw new ConfigurationException("Failed to fetch client configuration.", e);
         }
     }
 
@@ -120,6 +170,10 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                 DELETE FROM client_config
                 WHERE client_id = ?
                 """;
+        logger.info(
+                "Deleting configuration for client '{}'.",
+                clientId
+        );
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -127,9 +181,18 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
             statement.setString(1, clientId);
 
             statement.executeUpdate();
+            logger.info(
+                    "Configuration deleted successfully for client '{}'.",
+                    clientId
+            );
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to delete client configuration.", e);
+            logger.error(
+                    "Failed to delete configuration for client '{}'.",
+                    clientId,
+                    e
+            );
+            throw new ConfigurationException("Failed to fetch client configuration.", e);
         }
     }
 
@@ -140,6 +203,9 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                 SELECT *
                 FROM client_config
                 """;
+        logger.debug(
+                "Fetching all client configurations."
+        );
 
         List<ClientConfig> clients = new ArrayList<>();
 
@@ -161,10 +227,19 @@ public class PostgresClientConfigRepository implements ClientConfigRepository {
                 clients.add(config);
             }
 
+            logger.debug(
+                    "Loaded {} client configurations.",
+                    clients.size()
+            );
+
             return clients;
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to fetch client configurations.", e);
+            logger.error(
+                    "Failed to fetch all client configurations.",
+                    e
+            );
+            throw new ConfigurationException("Failed to fetch client configuration.", e);
         }
     }
 }

@@ -1,25 +1,41 @@
 package com.ratelimiter.app;
 
+import com.ratelimiter.controller.ClientController;
+import com.ratelimiter.service.ClientService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+
 import com.ratelimiter.config.DatabaseConfig;
 import com.ratelimiter.config.RedisConfig;
 import com.ratelimiter.controller.RateLimitController;
-import com.ratelimiter.engine.RateLimiter;
 import com.ratelimiter.engine.tokenbucket.TokenBucketRateLimiter;
+import com.ratelimiter.exception.GlobalExceptionHandler;
 import com.ratelimiter.repository.BucketRepository;
 import com.ratelimiter.repository.ClientConfigRepository;
 import com.ratelimiter.repository.postgres.PostgresClientConfigRepository;
 import com.ratelimiter.repository.redis.RedisBucketRepository;
+import java.util.Map;
+import com.ratelimiter.factory.RateLimiterFactory;
+import com.ratelimiter.model.enums.AlgorithmType;
 import com.ratelimiter.service.RateLimitService;
 import io.javalin.Javalin;
 
 public class Application {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(Application.class);
+
     public static void main(String[] args) {
 
         // ---------- Infrastructure ----------
+        logger.info("Starting Rate Limiter application...");
 
         RedisConfig redisConfig =
                 new RedisConfig("redis://localhost:6379");
+
+        logger.info("Successfully connected to Redis.");
 
         DatabaseConfig databaseConfig =
                 new DatabaseConfig(
@@ -38,17 +54,27 @@ public class Application {
                         databaseConfig.dataSource()
                 );
 
+        logger.info("Successfully connected to PostgreSQL.");
+
         // ---------- Engine ----------
 
-        RateLimiter tokenBucketRateLimiter =
+        TokenBucketRateLimiter tokenBucketRateLimiter =
                 new TokenBucketRateLimiter(bucketRepository);
+
+        RateLimiterFactory rateLimiterFactory =
+                new RateLimiterFactory(
+                        Map.of(
+                                AlgorithmType.TOKEN_BUCKET,
+                                tokenBucketRateLimiter
+                        )
+                );
 
         // ---------- Service ----------
 
         RateLimitService rateLimitService =
                 new RateLimitService(
                         clientConfigRepository,
-                        tokenBucketRateLimiter
+                        rateLimiterFactory
                 );
 
         // ---------- Controller ----------
@@ -58,16 +84,23 @@ public class Application {
 
         // ---------- HTTP Server ----------
 
-        Javalin app = Javalin.create();
 
-        app.post(
-                "/api/v1/rate-limit",
-                rateLimitController::handleRateLimit
-        );
+        logger.info("Starting Javalin server on port 7070...");
+
+        Javalin app = Javalin.create();
+        GlobalExceptionHandler.register(app);
+
+        ClientService clientService =
+                new ClientService(clientConfigRepository);
+
+        ClientController clientController =
+                new ClientController(clientService);
+
+        clientController.registerRoutes(app);
 
         app.start(7070);
 
-        System.out.println("Rate Limiter started on port 7070");
+        logger.info("Rate Limiter is up and running.");
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             redisConfig.shutdown();

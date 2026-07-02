@@ -2,10 +2,15 @@ package com.ratelimiter.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 
 public class DatabaseConfig {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(DatabaseConfig.class);
 
     private final HikariDataSource dataSource;
 
@@ -14,6 +19,8 @@ public class DatabaseConfig {
             String username,
             String password
     ) {
+
+        logger.info("Initializing PostgreSQL connection pool...");
 
         HikariConfig config = new HikariConfig();
 
@@ -26,6 +33,8 @@ public class DatabaseConfig {
         config.setAutoCommit(true);
 
         this.dataSource = new HikariDataSource(config);
+
+        logger.info("PostgreSQL connection pool initialized successfully.");
     }
 
     public DataSource dataSource() {
@@ -33,6 +42,9 @@ public class DatabaseConfig {
     }
 
     public void shutdown() {
+
+        logger.info("Closing PostgreSQL connection pool.");
         dataSource.close();
+        logger.info("PostgreSQL connection pool closed.");
     }
 }

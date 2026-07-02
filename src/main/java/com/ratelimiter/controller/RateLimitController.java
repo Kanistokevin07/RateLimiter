@@ -1,14 +1,16 @@
 package com.ratelimiter.controller;
 
-import com.ratelimiter.controller.dto.RateLimitRequest;
-import com.ratelimiter.controller.dto.RateLimitResponse;
 import com.ratelimiter.model.RateLimitDecision;
 import com.ratelimiter.service.RateLimitService;
 import io.javalin.http.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RateLimitController {
 
     private final RateLimitService rateLimitService;
+    private static final Logger logger =
+            LoggerFactory.getLogger(RateLimitController.class);
 
     public RateLimitController(RateLimitService rateLimitService) {
         this.rateLimitService = rateLimitService;
@@ -18,6 +20,12 @@ public class RateLimitController {
 
         RateLimitRequest request =
                 ctx.bodyAsClass(RateLimitRequest.class);
+
+        logger.info(
+                "Received rate limit request for client '{}' requesting {} token(s).",
+                request.clientId(),
+                request.tokensRequested()
+        );
 
         RateLimitDecision decision =
                 rateLimitService.allowRequest(
@@ -31,6 +39,13 @@ public class RateLimitController {
                 decision.remaining(),
                 decision.resetTimeEpochMillis(),
                 decision.retryAfterMillis()
+        );
+
+        logger.info(
+                "Processed request for client '{}'. Allowed={}, RemainingTokens={}",
+                request.clientId(),
+                decision.allowed(),
+                decision.remaining()
         );
 
         ctx.header("X-RateLimit-Limit", String.valueOf(decision.limit()));

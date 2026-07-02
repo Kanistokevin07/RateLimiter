@@ -1,45 +1,59 @@
 package com.ratelimiter.service;
 
 import com.ratelimiter.engine.RateLimiter;
+import com.ratelimiter.exception.ClientNotFoundException;
+import com.ratelimiter.factory.RateLimiterFactory;
 import com.ratelimiter.model.ClientConfig;
 import com.ratelimiter.model.RateLimitDecision;
 import com.ratelimiter.model.enums.AlgorithmType;
 import com.ratelimiter.repository.ClientConfigRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RateLimitService {
 
     private final ClientConfigRepository clientConfigRepository;
-    private final RateLimiter tokenBucketRateLimiter;
+    private final RateLimiterFactory rateLimiterFactory;
+    private static final Logger logger =
+            LoggerFactory.getLogger(RateLimitService.class);
 
     public RateLimitService(
             ClientConfigRepository clientConfigRepository,
-            RateLimiter tokenBucketRateLimiter
+            RateLimiterFactory rateLimiterFactory
     ) {
         this.clientConfigRepository = clientConfigRepository;
-        this.tokenBucketRateLimiter = tokenBucketRateLimiter;
+        this.rateLimiterFactory = rateLimiterFactory;
     }
 
     public RateLimitDecision allowRequest(String clientId, int tokensRequested) {
 
+        logger.info(
+                "Processing rate limit request for client '{}'.",
+                clientId
+        );
+
         ClientConfig clientConfig = clientConfigRepository
                 .findByClientId(clientId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Client not found: " + clientId));
+                        new ClientNotFoundException(clientId));
+
+        logger.debug(
+                "Loaded configuration for client '{}': algorithm={}",
+                clientId,
+                clientConfig.algorithmType()
+        );
 
         if (!clientConfig.enabled()) {
             throw new IllegalStateException("Client is disabled.");
         }
 
-        if (clientConfig.algorithmType() == AlgorithmType.TOKEN_BUCKET) {
-            return tokenBucketRateLimiter.allowRequest(
-                    clientId,
-                    clientConfig,
-                    tokensRequested
-            );
-        }
+        RateLimiter rateLimiter = rateLimiterFactory.getRateLimiter(clientConfig.algorithmType());
 
-        throw new UnsupportedOperationException(
-                "Unsupported algorithm: " + clientConfig.algorithmType()
+        return rateLimiter.allowRequest(
+                clientId,
+                clientConfig,
+                tokensRequested
         );
+
     }
 }

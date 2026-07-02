@@ -1,4 +1,4 @@
-package com.ratelimiter.controller.dto;
+package com.ratelimiter.controller;
 
 public record RateLimitResponse(
         boolean allowed,
