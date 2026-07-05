@@ -2,6 +2,7 @@ package com.ratelimiter.controller;
 
 import com.ratelimiter.model.RateLimitDecision;
 import com.ratelimiter.service.RateLimitService;
+import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,5 +61,12 @@ public class RateLimitController {
         }
 
         ctx.json(response);
+    }
+
+    public void registerRoutes(Javalin app) {
+        app.post(
+                "rate-limit",
+                this::handleRateLimit
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.ratelimiter.app;
 
+import com.ratelimiter.config.AppProperties;
 import com.ratelimiter.controller.ClientController;
 import com.ratelimiter.service.ClientService;
 import org.slf4j.Logger;
@@ -17,6 +18,8 @@ import com.ratelimiter.repository.ClientConfigRepository;
 import com.ratelimiter.repository.postgres.PostgresClientConfigRepository;
 import com.ratelimiter.repository.redis.RedisBucketRepository;
 import java.util.Map;
+import java.util.TimeZone;
+
 import com.ratelimiter.factory.RateLimiterFactory;
 import com.ratelimiter.model.enums.AlgorithmType;
 import com.ratelimiter.service.RateLimitService;
@@ -29,19 +32,22 @@ public class Application {
 
     public static void main(String[] args) {
 
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
+
+
         // ---------- Infrastructure ----------
         logger.info("Starting Rate Limiter application...");
 
         RedisConfig redisConfig =
-                new RedisConfig("redis://localhost:6379");
+                new RedisConfig(AppProperties.get("redis.url"));
 
         logger.info("Successfully connected to Redis.");
 
         DatabaseConfig databaseConfig =
                 new DatabaseConfig(
-                        "jdbc:postgresql://localhost:5432/rate_limiter",
-                        "postgres",
-                        "root"
+                        AppProperties.get("db.url"),
+                        AppProperties.get("db.username"),
+                        AppProperties.get("db.password")
                 );
 
         // ---------- Repositories ----------
@@ -97,8 +103,11 @@ public class Application {
                 new ClientController(clientService);
 
         clientController.registerRoutes(app);
+        rateLimitController.registerRoutes(app);
 
-        app.start(7070);
+        app.start(Integer.parseInt(
+                AppProperties.get("server.port")
+        ));
 
         logger.info("Rate Limiter is up and running.");
 
