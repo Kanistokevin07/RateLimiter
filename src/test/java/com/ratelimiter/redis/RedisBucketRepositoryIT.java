@@ -1,4 +1,4 @@
-package com.ratelimiter.integration.redis;
+package com.ratelimiter.redis;
 
 import com.ratelimiter.config.RedisConfig;
 import com.ratelimiter.engine.tokenbucket.BucketState;

@@ -42,7 +42,6 @@ class PostgresClientConfigRepositoryIT {
         try (Connection connection = dataSource.getConnection()) {
 
             Statement stmt = connection.createStatement();
-
             stmt.executeUpdate("DELETE FROM client_config");
 
         }
