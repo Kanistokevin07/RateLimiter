@@ -6,6 +6,9 @@ import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.junit.jupiter.api.*;
 
+import java.util.List;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RedisLuaIT {
@@ -16,18 +19,14 @@ class RedisLuaIT {
     @BeforeEach
     void setup() {
 
-        redisConfig =
-                new RedisConfig("redis://localhost:6379");
+        redisConfig = new RedisConfig("redis://localhost:6379");
 
-        redis =
-                redisConfig.redisCommands();
+        redis = redisConfig.redisCommands();
     }
 
     @AfterEach
     void cleanup() {
-
         redis.flushall();
-
         redisConfig.shutdown();
     }
 
@@ -37,14 +36,26 @@ class RedisLuaIT {
         String script =
                 LuaScriptLoader.load("lua/token_bucket.lua");
 
-        String result =
-                redis.eval(
-                        script,
-                        ScriptOutputType.VALUE
-                );
+        redis.hset(
+                "bucket:test-client",
+                Map.of(
+                        "availableTokens", "10",
+                        "lastRefillTimestamp", "1000"
+                )
+        );
+
+        @SuppressWarnings("unchecked")
+        List<String> result = (List<String>) redis.eval(
+                script,
+                ScriptOutputType.MULTI,
+                new String[]{"bucket:test-client"}
+        );
 
         assertThat(result)
-                .isEqualTo("Hello from Redis Lua!");
+                .containsExactly(
+                        "10",
+                        "1000"
+                );
 
         System.out.println(result);
     }

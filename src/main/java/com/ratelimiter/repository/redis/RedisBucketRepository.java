@@ -2,11 +2,14 @@ package com.ratelimiter.repository.redis;
 
 import com.ratelimiter.engine.tokenbucket.BucketState;
 import com.ratelimiter.exception.BucketPersistenceException;
+import com.ratelimiter.model.ClientConfig;
+import com.ratelimiter.redis.LuaScriptExecutor;
 import com.ratelimiter.repository.BucketRepository;
 import io.lettuce.core.api.sync.RedisCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,13 +18,16 @@ public class RedisBucketRepository implements BucketRepository {
     private static final Logger logger =
             LoggerFactory.getLogger(RedisBucketRepository.class);
 
+    private final LuaScriptExecutor luaExecutor;
+
     private static final String BUCKET_KEY_PREFIX = "bucket:";
     private static final String AVAILABLE_TOKENS = "availableTokens";
     private static final String LAST_REFILL_TIMESTAMP = "lastRefillTimestamp";
 
     private final RedisCommands<String, String> redis;
 
-    public RedisBucketRepository(RedisCommands<String, String> redis) {
+    public RedisBucketRepository(RedisCommands<String, String> redis, LuaScriptExecutor luaExecutor) {
+        this.luaExecutor = luaExecutor;
         this.redis = redis;
     }
 
@@ -115,5 +121,24 @@ public class RedisBucketRepository implements BucketRepository {
                     e
             );
         }
+    }
+
+    @Override
+    public List<Long> consumeTokens(
+            String clientId,
+            ClientConfig config,
+            int tokensRequested
+    ) {
+
+        long currentTime =
+                System.currentTimeMillis() / 1000;
+
+        return luaExecutor.execute(
+                clientId,
+                config.capacity(),
+                config.refillTokensPerSecond(),
+                currentTime,
+                tokensRequested
+        );
     }
 }
