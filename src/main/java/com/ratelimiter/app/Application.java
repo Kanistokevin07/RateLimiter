@@ -2,6 +2,7 @@ package com.ratelimiter.app;
 
 import com.ratelimiter.config.AppProperties;
 import com.ratelimiter.controller.ClientController;
+import com.ratelimiter.redis.LuaScriptExecutor;
 import com.ratelimiter.service.ClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +51,14 @@ public class Application {
                         AppProperties.get("db.password")
                 );
 
+        // lua executor
+
+        LuaScriptExecutor luaScriptExecutor = new LuaScriptExecutor(redisConfig.redisCommands());
+
         // ---------- Repositories ----------
 
         BucketRepository bucketRepository =
-                new RedisBucketRepository(redisConfig.redisCommands());
+                new RedisBucketRepository(redisConfig.redisCommands(), luaScriptExecutor);
 
         ClientConfigRepository clientConfigRepository =
                 new PostgresClientConfigRepository(

@@ -65,7 +65,7 @@ public class RateLimitController {
 
     public void registerRoutes(Javalin app) {
         app.post(
-                "rate-limit",
+                "/rate-limit",
                 this::handleRateLimit
         );
     }
