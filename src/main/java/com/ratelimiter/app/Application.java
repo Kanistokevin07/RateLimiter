@@ -4,6 +4,8 @@ import com.ratelimiter.config.AppProperties;
 import com.ratelimiter.controller.ClientController;
 import com.ratelimiter.redis.LuaScriptExecutor;
 import com.ratelimiter.service.ClientService;
+import com.ratelimiter.service.provider.ClientConfigProvider;
+import com.ratelimiter.service.provider.CachedClientConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +69,9 @@ public class Application {
 
         logger.info("Successfully connected to PostgreSQL.");
 
+        ClientConfigProvider clientConfigProvider =
+                new CachedClientConfigProvider(clientConfigRepository);
+
         // ---------- Engine ----------
 
         TokenBucketRateLimiter tokenBucketRateLimiter =
@@ -84,7 +89,7 @@ public class Application {
 
         RateLimitService rateLimitService =
                 new RateLimitService(
-                        clientConfigRepository,
+                        clientConfigProvider,
                         rateLimiterFactory
                 );
 

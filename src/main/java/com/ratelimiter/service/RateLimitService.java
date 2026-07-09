@@ -7,21 +7,22 @@ import com.ratelimiter.model.ClientConfig;
 import com.ratelimiter.model.RateLimitDecision;
 import com.ratelimiter.model.enums.AlgorithmType;
 import com.ratelimiter.repository.ClientConfigRepository;
+import com.ratelimiter.service.provider.ClientConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RateLimitService {
 
-    private final ClientConfigRepository clientConfigRepository;
+    private final ClientConfigProvider clientConfigProvider;
     private final RateLimiterFactory rateLimiterFactory;
     private static final Logger logger =
             LoggerFactory.getLogger(RateLimitService.class);
 
     public RateLimitService(
-            ClientConfigRepository clientConfigRepository,
+            ClientConfigProvider clientConfigProvider,
             RateLimiterFactory rateLimiterFactory
     ) {
-        this.clientConfigRepository = clientConfigRepository;
+        this.clientConfigProvider = clientConfigProvider;
         this.rateLimiterFactory = rateLimiterFactory;
     }
 
@@ -32,10 +33,8 @@ public class RateLimitService {
                 clientId
         );
 
-        ClientConfig clientConfig = clientConfigRepository
-                .findByClientId(clientId)
-                .orElseThrow(() ->
-                        new ClientNotFoundException(clientId));
+        ClientConfig clientConfig = clientConfigProvider
+                .get(clientId);
 
         logger.debug(
                 "Loaded configuration for client '{}': algorithm={}",
