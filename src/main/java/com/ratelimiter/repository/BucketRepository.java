@@ -16,4 +16,6 @@ public interface BucketRepository {
             ClientConfig config,
             int tokensRequested
     );
+
+    void deleteBucket(String clientId);
 }

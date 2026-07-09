@@ -77,5 +77,15 @@ public class ClientController {
             clientService.deleteClient(clientId);
             ctx.status(204);
         });
+
+        app.post("/clients/{clientId}/reset", ctx -> {
+            String clientId = ctx.pathParam("clientId");
+            logger.info(
+                    "Received request to reset bucket for client '{}'.",
+                    clientId
+            );
+            clientService.resetBucket(clientId);
+            ctx.status(204);
+        });
     }
 }

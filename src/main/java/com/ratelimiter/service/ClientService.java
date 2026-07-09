@@ -2,7 +2,10 @@ package com.ratelimiter.service;
 
 import com.ratelimiter.exception.ClientNotFoundException;
 import com.ratelimiter.model.ClientConfig;
+import com.ratelimiter.redis.pubsub.ConfigurationUpdatePublisher;
+import com.ratelimiter.repository.BucketRepository;
 import com.ratelimiter.repository.ClientConfigRepository;
+import com.ratelimiter.service.provider.ClientConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,9 +17,14 @@ public class ClientService {
             LoggerFactory.getLogger(ClientService.class);
 
     private final ClientConfigRepository repository;
+    private final ConfigurationUpdatePublisher publisher;
+    private final BucketRepository bucketRepository;
 
-    public ClientService(ClientConfigRepository repository) {
+    public ClientService(ClientConfigRepository repository, ConfigurationUpdatePublisher publisher,
+                         BucketRepository bucketRepository) {
         this.repository = repository;
+        this.publisher = publisher;
+        this.bucketRepository = bucketRepository;
     }
 
     public ClientConfig getClient(String clientId) {
@@ -48,6 +56,7 @@ public class ClientService {
                 clientConfig.clientId()
         );
         repository.update(clientConfig);
+        publisher.publish(clientConfig.clientId());
     }
 
     public void deleteClient(String clientId) {
@@ -56,5 +65,22 @@ public class ClientService {
                 clientId
         );
         repository.delete(clientId);
+        publisher.publish(clientId);
+    }
+
+    public void resetBucket(String clientId) {
+        logger.info(
+                "Reset bucket requested for client '{}'.",
+                clientId
+        );
+        repository.findByClientId(clientId)
+                .orElseThrow(() ->
+                        new ClientNotFoundException(clientId));
+
+        bucketRepository.deleteBucket(clientId);
+        logger.info(
+                "Bucket reset completed for client '{}'.",
+                clientId
+        );
     }
 }

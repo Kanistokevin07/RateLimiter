@@ -3,6 +3,9 @@ package com.ratelimiter.app;
 import com.ratelimiter.config.AppProperties;
 import com.ratelimiter.controller.ClientController;
 import com.ratelimiter.redis.LuaScriptExecutor;
+import com.ratelimiter.redis.pubsub.ConfigurationUpdatePublisher;
+import com.ratelimiter.redis.pubsub.ConfigurationUpdateSubscriber;
+import com.ratelimiter.redis.pubsub.RedisChannels;
 import com.ratelimiter.service.ClientService;
 import com.ratelimiter.service.provider.ClientConfigProvider;
 import com.ratelimiter.service.provider.CachedClientConfigProvider;
@@ -44,6 +47,11 @@ public class Application {
         RedisConfig redisConfig =
                 new RedisConfig(AppProperties.get("redis.url"));
 
+        ConfigurationUpdatePublisher publisher =
+                new ConfigurationUpdatePublisher(
+                        redisConfig.redisCommands()
+                );
+
         logger.info("Successfully connected to Redis.");
 
         DatabaseConfig databaseConfig =
@@ -71,6 +79,16 @@ public class Application {
 
         ClientConfigProvider clientConfigProvider =
                 new CachedClientConfigProvider(clientConfigRepository);
+
+        ConfigurationUpdateSubscriber subscriber =
+                new ConfigurationUpdateSubscriber(clientConfigProvider);
+
+        redisConfig.pubSubConnection()
+                .addListener(subscriber);
+
+        redisConfig.pubSubConnection()
+                .sync()
+                .subscribe(RedisChannels.CLIENT_CONFIG_UPDATES);
 
         // ---------- Engine ----------
 
@@ -107,7 +125,7 @@ public class Application {
         GlobalExceptionHandler.register(app);
 
         ClientService clientService =
-                new ClientService(clientConfigRepository);
+                new ClientService(clientConfigRepository, publisher, bucketRepository);
 
         ClientController clientController =
                 new ClientController(clientService);

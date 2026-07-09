@@ -141,4 +141,33 @@ public class RedisBucketRepository implements BucketRepository {
                 tokensRequested
         );
     }
+
+    @Override
+    public void deleteBucket(String clientId) {
+
+        String key = BUCKET_KEY_PREFIX + clientId;
+        logger.info(
+                "Resetting bucket for client '{}'.",
+                clientId
+        );
+
+        try {
+            redis.del(key);
+            logger.info(
+                    "Bucket reset successfully for client '{}'.",
+                    clientId
+            );
+
+        } catch (Exception e) {
+            logger.error(
+                    "Failed to reset bucket for client '{}'.",
+                    clientId,
+                    e
+            );
+            throw new BucketPersistenceException(
+                    "Failed to reset bucket for client: " + clientId,
+                    e
+            );
+        }
+    }
 }
