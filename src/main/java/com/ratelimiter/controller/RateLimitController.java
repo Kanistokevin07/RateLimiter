@@ -23,6 +23,11 @@ public class RateLimitController {
                 ctx.bodyAsClass(RateLimitRequest.class);
 
         logger.info(
+                "Request handled by container: {}",
+                System.getenv("HOSTNAME")
+        );
+
+        logger.info(
                 "Received rate limit request for client '{}' requesting {} token(s).",
                 request.clientId(),
                 request.tokensRequested()

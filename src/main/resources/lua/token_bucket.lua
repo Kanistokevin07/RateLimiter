@@ -78,5 +78,7 @@ redis.call(
 return {
     allowed,
     availableTokens,
-    lastRefill
+    lastRefill,
+    now,
+    now - lastRefill
 }

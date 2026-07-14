@@ -27,11 +27,11 @@ public class CachedClientConfigProvider implements ClientConfigProvider {
         ClientConfig cached = cache.get(clientId);
 
         if (cached != null) {
-            logger.debug("Cache HIT for client '{}'.", clientId);
+            logger.info("Cache HIT for client '{}'.", clientId);
             return cached;
         }
 
-        logger.debug("Cache MISS for client '{}'. Loading from database.", clientId);
+        logger.info("Cache MISS for client '{}'. Loading from database.", clientId);
 
         ClientConfig config = repository
                 .findByClientId(clientId)

@@ -37,6 +37,8 @@ public class TokenBucketRateLimiter implements RateLimiter {
                         tokensRequested
                 );
 
+        logger.info("Lua Result = {}", result);
+
         boolean allowed = result.get(0) == 1;
 
         long remainingTokens = result.get(1);

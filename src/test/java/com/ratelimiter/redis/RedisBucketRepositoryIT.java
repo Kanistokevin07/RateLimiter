@@ -15,6 +15,8 @@ class RedisBucketRepositoryIT {
     private RedisConfig redisConfig;
     private RedisCommands<String,String> redis;
     private RedisBucketRepository repository;
+    LuaScriptExecutor luaExecutor =
+            new LuaScriptExecutor(redisConfig.redisCommands());
 
     @BeforeEach
     void setup(){
@@ -28,7 +30,7 @@ class RedisBucketRepositoryIT {
         redis.flushdb();
 
         repository =
-                new RedisBucketRepository(redis);
+                new RedisBucketRepository(redis, luaExecutor);
 
     }
 
