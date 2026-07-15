@@ -5,7 +5,7 @@ import { Counter } from "k6/metrics";
 export let allowed = new Counter("allowed_requests");
 export let rejected = new Counter("rejected_requests");
 
-const BASE_URL = "http://localhost:7070";
+const BASE_URL = "http://localhost:7071";
 
 export const options = {
     scenarios: {

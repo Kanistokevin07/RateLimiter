@@ -1,12 +1,15 @@
 package com.ratelimiter.app;
 
 import com.ratelimiter.config.AppProperties;
+import com.ratelimiter.config.MetricsConfig;
 import com.ratelimiter.controller.ClientController;
+import com.ratelimiter.controller.MetricsController;
 import com.ratelimiter.redis.LuaScriptExecutor;
 import com.ratelimiter.redis.pubsub.ConfigurationUpdatePublisher;
 import com.ratelimiter.redis.pubsub.ConfigurationUpdateSubscriber;
 import com.ratelimiter.redis.pubsub.RedisChannels;
 import com.ratelimiter.service.ClientService;
+import com.ratelimiter.service.MetricsService;
 import com.ratelimiter.service.provider.ClientConfigProvider;
 import com.ratelimiter.service.provider.CachedClientConfigProvider;
 import org.slf4j.Logger;
@@ -103,12 +106,27 @@ public class Application {
                         )
                 );
 
+        MetricsConfig metricsConfig =
+                new MetricsConfig();
+
+        MetricsService metricsService =
+                new MetricsService(
+                        metricsConfig.registry()
+                );
+
+        MetricsController metricsController =
+                new MetricsController(
+                        metricsConfig.registry()
+                );
+
+
         // ---------- Service ----------
 
         RateLimitService rateLimitService =
                 new RateLimitService(
                         clientConfigProvider,
-                        rateLimiterFactory
+                        rateLimiterFactory,
+                        metricsService
                 );
 
         // ---------- Controller ----------
@@ -132,6 +150,7 @@ public class Application {
 
         clientController.registerRoutes(app);
         rateLimitController.registerRoutes(app);
+        metricsController.registerRoutes(app);
 
         app.start(Integer.parseInt(
                 AppProperties.get("server.port")
